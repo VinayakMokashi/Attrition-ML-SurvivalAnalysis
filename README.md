@@ -44,6 +44,14 @@ Included in this repository:
 
 __Data__: Attrition_Data.csv
 
+__Reports and Presentations__:
+
+Report.docx: Description and Details
+
+Presentation.pptx: Description and Details
+
+Note - Use both the Report and the Presentation in combination to fully understand.
+
 __Scripts__:
 
 CoxPH.R: Fits the Cox-PH model.
