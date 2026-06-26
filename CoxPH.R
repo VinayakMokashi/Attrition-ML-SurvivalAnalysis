@@ -1,66 +1,61 @@
-library(survival)
-library(KMsurv)
-library(survminer)
-library(JM)
-library(pec)
-library(riskRegression)
-data3 = read.csv(file.choose(),header = T)
-str(data3)
-data3$Attrition[data3$Attrition=="Yes"]=1 #Conv Yes No to 1 0 since aage status variable needs nymeric vectors
-data3$Attrition[data3$Attrition=="No"]=0
-str(data3)
-data3$Attrition=as.numeric(data3$Attrition)
-?lapply
-str(data3)
-
-data3[,c(3,5,7,8,12,16,18,23,22)]=lapply(data3[,c(3,5,7,8,12,16,18,23,22)],as.factor)
-str(data3)
-
-
+# =============================================================================
+# Cox Proportional Hazards (Cox-PH) Model
+# -----------------------------------------------------------------------------
+# Models the hazard of employee attrition as a function of demographic, job and
+# work-experience covariates, using YearsAtCompany as the survival time and
+# Attrition as the event indicator.
 #
+# Input : Attrition_Data.csv (must be in the working directory)
+# Output: - Cox-PH model coefficients / hazard ratios (summary)
+#         - Proportional-hazards assumption check (cox.zph + ggcoxzph)
+#         - Baseline cumulative hazard and predicted survival probabilities
+#
+# Required packages: survival, survminer, pec
+# =============================================================================
+
+library(survival)
+library(survminer)
+library(pec)            # predictSurvProb()
+
+# ---- Load and prepare data --------------------------------------------------
+data <- read.csv("Attrition_Data.csv", header = TRUE)
+
+# Encode the event indicator: Yes -> 1 (event), No -> 0 (censored)
+data$Attrition[data$Attrition == "Yes"] <- 1
+data$Attrition[data$Attrition == "No"]  <- 0
+data$Attrition <- as.numeric(data$Attrition)
+
+# Convert categorical columns to factors
+data[, c(3, 5, 7, 8, 12, 16, 18, 23, 22)] <-
+  lapply(data[, c(3, 5, 7, 8, 12, 16, 18, 23, 22)], as.factor)
+str(data)
+
+# ---- Fit the Cox-PH model ---------------------------------------------------
+# x = TRUE retains the model matrix, which predictSurvProb() requires later.
+cox.model <- coxph(
+  Surv(YearsAtCompany, Attrition) ~ Department + BusinessTravel + Gender + Age +
+    DistanceFromHome + Education + EducationField + EnvironmentSatisfaction +
+    JobInvolvement + JobLevel + JobRole + JobSatisfaction + MaritalStatus +
+    MonthlyIncome + NumCompaniesWorked + OverTime + PercentSalaryHike +
+    PerformanceRating + RelationshipSatisfaction + TotalWorkingYears +
+    YearsInCurrentRole + YearsSinceLastPromotion + YearsWithCurrManager,
+  data = data, x = TRUE
+)
+summary(cox.model)
+
+# ---- Check the proportional-hazards assumption ------------------------------
 test_ph <- cox.zph(cox.model)
 test_ph
-cox.model <- coxph(Surv(YearsAtCompany,Attrition)~RelationshipSatisfaction+StandardHours+StockOptionLevel+TotalWorkingYears+TrainingTimesLastYear+WorkLifeBalance+PerformanceRating+PercentSalaryHike+BusinessTravel+DailyRate+Department+DistanceFromHome+Education+EmployeeCount+EmployeeNumber+EnvironmentSatisfaction+Gender+HourlyRate+JobInvolvement+JobLevel+JobSatisfaction+MonthlyIncome +MonthlyRate+OverTime,data=data3)
-summary(cox.model)
-cox.model$formula
-SurvObject1=Surv(data3$YearsAtCompany,data3$Attrition)
-?survfit
-fit1=survfit(SurvObject1~1,data=data3)
-summary(fit1)
-library(survminer)
-plot(fit1,  xlab="Time", ylab="Survival")
-summary(cox.model)
-?basehaz
-basehaz(cox.model,centered=TRUE)
-?cox.zph
-?cox.zph
-
-library(survival)
-library(KMsurv)
-
-
-
-
-
-
-
-
-
-new=data3
-surv_time_Cox = survfit(fit2, new)
-surv_time_Cox
-colnames(data3)
-cox.model <- coxph(Surv(YearsAtCompany,Attrition)~Department+BusinessTravel+Gender+Age+ DistanceFromHome+ Education+ EducationField+ EnvironmentSatisfaction +JobInvolvement+ JobLevel+ JobRole +JobSatisfaction +MaritalStatus+ MonthlyIncome+ NumCompaniesWorked+ OverTime+ PercentSalaryHike+ PerformanceRating+ RelationshipSatisfaction+ TotalWorkingYears+ YearsInCurrentRole+ YearsSinceLastPromotion+ YearsWithCurrManager ,data=data3,x=TRUE)
-?predictSurvProb
-cox.model$timefix
-S=survfit(cox.model)
-S$surv
-pred<-predict(S,type='expected')
-basehaz(cox.model)
-surv_prob<-exp(-pred)
-t=data3$YearsAtCompany[(data3$Attrition==0 | data3$Attrition==1 )]
-Pred_Prob <- predictSurvProb(cox.model,newdata=data3[,c(-2,-32)], times = t)
-View(Pred_Prob)
 ggcoxzph(test_ph)
 
+# ---- Baseline survival and hazard -------------------------------------------
+SurvObject <- Surv(data$YearsAtCompany, data$Attrition)
+fit <- survfit(SurvObject ~ 1, data = data)
+plot(fit, xlab = "Time (years)", ylab = "Survival")
 
+basehaz(cox.model, centered = TRUE)
+
+# ---- Predicted survival probabilities ---------------------------------------
+times <- data$YearsAtCompany[data$Attrition == 0 | data$Attrition == 1]
+Pred_Prob <- predictSurvProb(cox.model, newdata = data[, c(-2, -32)], times = times)
+View(Pred_Prob)
