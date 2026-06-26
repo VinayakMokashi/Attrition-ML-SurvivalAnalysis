@@ -1,74 +1,135 @@
 # Employee Attrition Prediction Using ML & Survival Analysis
 
-This project uses advanced statistical and machine learning techniques to predict employee turnover, along with Survival Analysis, focusing on attrition factors within an organization. Utilizing the IBM HR Analytics Employee Attrition & Performance dataset, the study offers insights into key reasons for attrition and recommends strategies for retention.
+Predicting employee turnover and modelling *when* employees are likely to leave,
+using survival analysis and machine learning on the IBM HR Analytics Employee
+Attrition & Performance dataset. The project identifies the key drivers of
+attrition and translates them into practical retention strategies.
 
 ## Project Overview
 
-Employee attrition can be a significant challenge for organizations, leading to operational disruption and increased costs. This project employs Kaplan-Meier Estimates, Cox Proportional Hazards (Cox-PH) model, and Logistic Regression, as well as Random Survival Forest for high-dimensional data analysis, achieving 87.2% predictive accuracy. It offers practical insights to reduce employee turnover by identifying and addressing core attrition factors.
+Employee attrition is a costly challenge for organizations, causing operational
+disruption and higher hiring and training expenses. This project combines four
+complementary techniques:
 
-## Data Description
+- **Kaplan-Meier estimates** — describe the overall survival (retention) curve.
+- **Cox Proportional Hazards model** — quantify how each covariate shifts the
+  hazard of leaving.
+- **Logistic regression** — classify whether an employee will leave, reaching
+  **~87.2% accuracy** with a stepwise-selected model.
+- **Random Survival Forest** — rank feature importance and predict survival
+  probabilities for high-dimensional, interaction-rich data.
 
-The dataset includes 1,470 records across 35 attributes, covering:
+Together they answer both "*who* is likely to leave" and "*how long* employees
+tend to stay."
 
-__Demographics__: Age, gender, marital status, and more.
+## Dataset
 
-__Job Information__: Department, job role, monthly income, and overtime status.
+The analysis uses the **IBM HR Analytics Employee Attrition & Performance**
+dataset ([Kaggle source](https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset)),
+included here as [`Attrition_Data.csv`](Attrition_Data.csv).
 
-__Work Experience__: Years at the company, years in the current role, and prior employment history.
+- **1,470** employee records across **35** attributes.
+- **Demographics** — Age, Gender, MaritalStatus, DistanceFromHome.
+- **Job information** — Department, JobRole, JobLevel, MonthlyIncome, OverTime.
+- **Work experience** — TotalWorkingYears, YearsAtCompany, YearsInCurrentRole,
+  YearsWithCurrManager, NumCompaniesWorked.
+- **Education & satisfaction** — Education, EducationField, JobSatisfaction,
+  EnvironmentSatisfaction, WorkLifeBalance.
 
-__Educational Background__: Education level and field of study.
+**Survival framing:** `YearsAtCompany` is the survival time and `Attrition`
+(Yes/No → 1/0) is the event indicator, where employees who have not left are
+treated as right-censored.
 
-Data preprocessing steps involve feature selection, label encoding, and scaling for consistent analysis.
+## Repository Structure
 
-## Methodology:
+| File | Description |
+|------|-------------|
+| [`Attrition_Data.csv`](Attrition_Data.csv) | The IBM HR attrition dataset (1,470 × 35). |
+| [`KM_Estimates.R`](KM_Estimates.R) | Kaplan-Meier survival estimates and survival curve. |
+| [`CoxPH.R`](CoxPH.R) | Cox Proportional Hazards model, PH-assumption check, and predicted survival probabilities. |
+| [`Logistic_regression.R`](Logistic_regression.R) | Stepwise logistic regression with ROC/AUC and confusion matrices. |
+| [`Survival_Random_Forest.R`](Survival_Random_Forest.R) | Random Survival Forest for variable importance and survival prediction. |
+| [`Report.docx`](Report.docx) | Full written report — methodology, results, and interpretation. |
+| [`Presentation.pptx`](Presentation.pptx) | Summary slide deck of the project. |
+| [`LICENSE`](LICENSE) | MIT License. |
 
-__Kaplan-Meier Estimates__: This non-parametric method estimates survival probability over time, showing the fraction of employees expected to remain with the organization.
+## Prerequisites
 
-__Cox Proportional Hazards Model__: The Cox-PH model estimates the impact of various covariates on attrition, identifying factors like overtime and job involvement that influence turnover rates.
+- **R** ≥ 4.0 (and optionally [RStudio](https://posit.co/download/rstudio-desktop/)).
+- The R packages used across the scripts. Install them once with:
 
-__Logistic Regression__: Logistic regression identifies key attrition predictors, achieving 87.2% accuracy by using significant variables, including job satisfaction and relationship with the manager.
+```r
+install.packages(c(
+  "survival", "KMsurv", "survminer",   # Kaplan-Meier & Cox-PH
+  "pec",                               # predicted survival probabilities
+  "pROC", "performance",               # logistic regression evaluation
+  "randomForestSRC"                    # Random Survival Forest
+))
+```
 
-__Random Survival Forest__: The Random Survival Forest method, specialized for right-censored data, identifies important features and predicts the survival probability, aiding in high-dimensional data analysis where interactions between variables are crucial.
+## How to Run
 
+1. Clone the repository and open it as your R working directory:
 
-## Key Findings:
-__Significant Factors__: Key predictors include overtime, job satisfaction, and years with the current manager.
+   ```bash
+   git clone https://github.com/VinayakMokashi/Attrition-ML-SurvivalAnalysis.git
+   cd Attrition-ML-SurvivalAnalysis
+   ```
 
-__Attrition by Age Group__: Highest attrition rates occur in the 30-35 age group.
+   In R/RStudio, set the working directory to this folder so the scripts can
+   find `Attrition_Data.csv`:
 
-__Retention Recommendations__: Emphasize work-life balance, competitive wages, and supportive management to improve employee retention.
+   ```r
+   setwd("path/to/Attrition-ML-SurvivalAnalysis")
+   ```
 
-## Usage:
+2. Run any script independently — each loads `Attrition_Data.csv` from the
+   working directory and is self-contained. A suggested order:
 
-Included in this repository:
+   ```r
+   source("KM_Estimates.R")            # 1. Overall survival curve
+   source("CoxPH.R")                   # 2. Covariate effects on the hazard
+   source("Logistic_regression.R")     # 3. Attrition classification
+   source("Survival_Random_Forest.R")  # 4. Feature importance & prediction
+   ```
 
-__Data__: Attrition_Data.csv
+   Or open a script in RStudio and run it line by line to inspect each model,
+   plot, and summary interactively.
 
-__Reports and Presentations__:
+## Methodology
 
-Report.docx: Description and Details
+- **Kaplan-Meier estimates** — a non-parametric estimate of the probability that
+  an employee remains beyond a given tenure, with a log-rank p-value.
+- **Cox Proportional Hazards** — a semi-parametric model estimating the hazard
+  ratio for each covariate; the proportional-hazards assumption is checked with
+  `cox.zph` and Schoenfeld-residual plots.
+- **Logistic regression** — a binary classifier with stepwise (both-direction)
+  variable selection, evaluated via ROC/AUC, confusion matrices, and a
+  Hosmer-Lemeshow goodness-of-fit test on a 70/30 train-test split.
+- **Random Survival Forest** — an ensemble of survival trees for right-censored
+  data; permutation VIMP and minimal-depth selection rank the most predictive
+  features.
 
-Presentation.pptx: Description and Details
+## Key Findings
 
-Note - Use both the Report and the Presentation in combination to fully understand.
+- **Top drivers of attrition:** OverTime, JobSatisfaction, and
+  YearsWithCurrManager are consistently among the strongest predictors.
+- **Age effect:** attrition is highest in the **30–35** age group.
+- **Model performance:** the logistic regression model achieves **~87.2%**
+  classification accuracy.
 
-__Scripts__:
+## Recommendations
 
-CoxPH.R: Fits the Cox-PH model.
+Focus retention efforts on **work-life balance** (managing overtime),
+**competitive compensation**, and **supportive management** — the levers the
+models flag as most influential on whether and when employees leave.
 
-Logistic_regression.R: Implements logistic regression.
+## Future Scope
 
-KM Estimates.R: Calculates Kaplan-Meier survival estimates.
+Extend the modelling with additional ML techniques such as **SVM** and
+**XGBoost** to improve predictive accuracy, and validate the approach on data
+from other industries.
 
-Random_Survival_Forest.R: Implements Random Survival Forest for feature importance and survival probability prediction.
+## License
 
-Run the scripts in sequence to reproduce results or adapt the analysis to new datasets.
-
-## Conclusion and Recommendations:
-
-This analysis helps organizations identify and manage attrition risks, recommending HR strategies that focus on improving work-life balance, fair compensation, and employee satisfaction.
-
-## Future Scope:
-
-Further analysis may include advanced ML techniques, such as support vector machines (SVM) and XGBoost, to enhance predictive accuracy and broaden industry applicability.
-
+Released under the [MIT License](LICENSE).
